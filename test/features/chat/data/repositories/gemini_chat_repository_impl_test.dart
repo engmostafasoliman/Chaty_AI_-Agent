@@ -1,3 +1,4 @@
+import 'package:chaty_ai_agent/core/error/app_exception.dart';
 import 'package:chaty_ai_agent/core/result/api_result.dart';
 import 'package:chaty_ai_agent/features/chat/data/models/chat_message_model.dart';
 import 'package:chaty_ai_agent/features/chat/data/repositories/gemini_chat_repository_impl.dart';
@@ -39,15 +40,48 @@ void main() {
       expect(success.data.text, 'AI works by recognizing patterns.');
     });
 
-    test('returns ApiFailure when service throws', () async {
+    test('returns ApiFailure with humanized message on NoInternetException',
+        () async {
       when(() => mockService.sendMessages(any()))
-          .thenThrow(Exception('Network error'));
+          .thenThrow(const NoInternetException());
 
       final result = await repository.sendMessage(tMessages);
 
       expect(result, isA<ApiFailure<ChatMessage>>());
       final failure = result as ApiFailure<ChatMessage>;
-      expect(failure.message, contains('Network error'));
+      expect(failure.message, contains('No internet connection'));
+    });
+
+    test('returns ApiFailure with humanized message on RateLimitException',
+        () async {
+      when(() => mockService.sendMessages(any()))
+          .thenThrow(const RateLimitException());
+
+      final result = await repository.sendMessage(tMessages);
+
+      final failure = result as ApiFailure<ChatMessage>;
+      expect(failure.message, contains('too fast'));
+    });
+
+    test('returns ApiFailure with humanized message on ServerException',
+        () async {
+      when(() => mockService.sendMessages(any()))
+          .thenThrow(const ServerException(503));
+
+      final result = await repository.sendMessage(tMessages);
+
+      final failure = result as ApiFailure<ChatMessage>;
+      expect(failure.message, contains('AI service is having trouble'));
+    });
+
+    test('returns ApiFailure with generic message on unknown error', () async {
+      when(() => mockService.sendMessages(any()))
+          .thenThrow(Exception('unknown'));
+
+      final result = await repository.sendMessage(tMessages);
+
+      final failure = result as ApiFailure<ChatMessage>;
+      expect(failure.message, contains('Something went wrong'));
     });
 
     test('passes correct number of messages to service', () async {
