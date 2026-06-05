@@ -1,0 +1,4 @@
+#include "Flutter/Generated.xcconfig"
+PRODUCT_BUNDLE_IDENTIFIER=com.codemind.chatyaiagent.dev
+PRODUCT_NAME=Chaty Agent Dev
+FLUTTER_TARGET=lib/main_dev.dart

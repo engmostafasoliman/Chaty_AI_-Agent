@@ -10,6 +10,7 @@ CLAUDE.md
 .env
 .env.dev
 .env.prod
+dart_defines/
 
 # Miscellaneous
 *.class
