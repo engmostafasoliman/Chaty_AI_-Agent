@@ -1,3 +1,4 @@
+import '../../../../core/error/app_exception.dart';
 import '../../../../core/result/api_result.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/repositories/chat_repository.dart';
@@ -22,8 +23,29 @@ class GeminiChatRepositoryImpl implements ChatRepository {
       final response = await _service.sendMessages(models);
 
       return ApiSuccess(ChatMessage(role: response.role, text: response.text));
+    } on AppException catch (e) {
+      return ApiFailure(_humanize(e));
     } catch (e) {
-      return ApiFailure(e.toString());
+      return const ApiFailure(
+        'Something went wrong. Please try again.',
+      );
     }
+  }
+
+  String _humanize(AppException exception) {
+    return switch (exception) {
+      NoInternetException() =>
+        'No internet connection. Please check your network and try again.',
+      TimeoutException() =>
+        'The request took too long. Please try again.',
+      RateLimitException() =>
+        'You\'re sending messages too fast. Please wait a moment and try again.',
+      UnauthorizedException() =>
+        'Authentication failed. Please check your API key.',
+      ServerException() =>
+        'The AI service is having trouble right now. Please try again in a moment.',
+      UnknownException() =>
+        'Something went wrong. Please try again.',
+    };
   }
 }
