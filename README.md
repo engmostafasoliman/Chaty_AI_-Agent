@@ -93,21 +93,34 @@ cd Chaty_AI_-Agent
 flutter pub get
 ```
 
-3. Create your env file
+3. Create your API key files
 
 ```bash
-cp .env.example .env.dev
-# Add your GEMINI_API_KEY to .env.dev
+mkdir dart_defines
+
+# dart_defines/dev.json
+echo '{ "GEMINI_API_KEY": "your_dev_api_key" }' > dart_defines/dev.json
+
+# dart_defines/prod.json
+echo '{ "GEMINI_API_KEY": "your_prod_api_key" }' > dart_defines/prod.json
 ```
+
+> `dart_defines/` is gitignored — your keys are never committed.
 
 4. Run the app
 
 ```bash
-# Dev flavor
-flutter run --flavor dev --target lib/main_dev.dart --dart-define-from-file=.env.dev
+# Dev debug
+flutter run --flavor dev --target lib/main_dev.dart --dart-define-from-file=dart_defines/dev.json
 
-# Prod flavor
-flutter run --flavor prod --target lib/main_prod.dart --dart-define-from-file=.env.prod
+# Dev release
+flutter run --flavor dev --target lib/main_dev.dart --dart-define-from-file=dart_defines/dev.json --release
+
+# Prod debug
+flutter run --flavor prod --target lib/main_prod.dart --dart-define-from-file=dart_defines/prod.json
+
+# Prod release
+flutter run --flavor prod --target lib/main_prod.dart --dart-define-from-file=dart_defines/prod.json --release
 ```
 
 ## CI/CD
