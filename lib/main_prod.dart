@@ -6,7 +6,7 @@ import 'core/di/injection.dart';
 import 'core/theme/theme_cubit.dart';
 import 'features/sign_in/presentation/screens/sign_in_screen.dart';
 import 'features/repo_list/presentation/screens/repo_list_screen.dart';
-import 'features/chat/presentation/screens/chat_screen.dart';
+import 'features/repo_detail/presentation/screens/repo_detail_screen.dart';
 
 void main() {
   const config = AppConfig(
@@ -42,7 +42,9 @@ class MyApp extends StatelessWidget {
                 MaterialPageRoute(
                   builder: (_) => RepoListScreen(
                     onRepoTap: (id) => _navigatorKey.currentState?.push(
-                      MaterialPageRoute(builder: (_) => const ChatScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => RepoDetailScreen(repoId: id),
+                      ),
                     ),
                   ),
                 ),

@@ -1,4 +1,5 @@
 import '../../domain/entities/repo_entity.dart';
+import 'repo_summary_model.dart';
 
 class RepoModel extends RepoEntity {
   const RepoModel({
@@ -12,6 +13,7 @@ class RepoModel extends RepoEntity {
     required super.license,
     required super.lastCommit,
     required super.summarized,
+    super.summary,
   });
 
   factory RepoModel.fromJson(Map<String, dynamic> json) => RepoModel(
@@ -25,6 +27,10 @@ class RepoModel extends RepoEntity {
         license: json['license'] as String,
         lastCommit: json['lastCommit'] as String,
         summarized: json['summarized'] as bool,
+        summary: json['summary'] != null
+            ? RepoSummaryModel.fromJson(
+                json['summary'] as Map<String, dynamic>)
+            : null,
       );
 
   Map<String, dynamic> toJson() => {
@@ -40,3 +46,4 @@ class RepoModel extends RepoEntity {
         'summarized': summarized,
       };
 }
+

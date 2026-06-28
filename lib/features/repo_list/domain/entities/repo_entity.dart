@@ -1,3 +1,5 @@
+import 'repo_summary_entity.dart';
+
 class RepoEntity {
   final String id;
   final String name;
@@ -9,6 +11,7 @@ class RepoEntity {
   final String license;
   final String lastCommit;
   final bool summarized;
+  final RepoSummaryEntity? summary;
 
   const RepoEntity({
     required this.id,
@@ -21,5 +24,20 @@ class RepoEntity {
     required this.license,
     required this.lastCommit,
     required this.summarized,
+    this.summary,
   });
+
+  RepoEntity withSummary(RepoSummaryEntity summary) => RepoEntity(
+        id: id,
+        name: name,
+        owner: owner,
+        description: description,
+        language: language,
+        stars: stars,
+        updatedAgo: updatedAgo,
+        license: license,
+        lastCommit: lastCommit,
+        summarized: true,
+        summary: summary,
+      );
 }

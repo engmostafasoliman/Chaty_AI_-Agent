@@ -11,7 +11,10 @@ import '../../features/repo_list/data/datasources/repo_mock_data_source.dart';
 import '../../features/repo_list/data/repositories/repo_repository_impl.dart';
 import '../../features/repo_list/domain/repositories/repo_repository.dart';
 import '../../features/repo_list/domain/usecases/get_repos_usecase.dart';
+import '../../features/repo_list/domain/usecases/get_repo_detail_usecase.dart';
+import '../../features/repo_list/domain/usecases/generate_summary_usecase.dart';
 import '../../features/repo_list/presentation/cubit/repo_list_cubit.dart';
+import '../../features/repo_detail/presentation/cubit/repo_detail_cubit.dart';
 
 final getIt = GetIt.instance;
 
@@ -25,8 +28,17 @@ void setupDependencies(AppConfig config) {
   getIt.registerLazySingleton<GetReposUseCase>(
     () => GetReposUseCase(getIt()),
   );
+  getIt.registerLazySingleton<GetRepoDetailUseCase>(
+    () => GetRepoDetailUseCase(getIt()),
+  );
+  getIt.registerLazySingleton<GenerateSummaryUseCase>(
+    () => GenerateSummaryUseCase(getIt()),
+  );
   getIt.registerFactory<RepoListCubit>(
     () => RepoListCubit(getIt()),
+  );
+  getIt.registerFactory<RepoDetailCubit>(
+    () => RepoDetailCubit(getIt(), getIt()),
   );
   getIt.registerLazySingleton<GeminiChatService>(
     () => GeminiChatService(apiKey: config.geminiApiKey),

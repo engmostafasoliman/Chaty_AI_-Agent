@@ -1,5 +1,6 @@
 import '../../../../core/result/api_result.dart';
 import '../../domain/entities/repo_entity.dart';
+import '../../domain/entities/repo_summary_entity.dart';
 import '../../domain/repositories/repo_repository.dart';
 import '../datasources/repo_mock_data_source.dart';
 
@@ -10,10 +11,27 @@ class RepoRepositoryImpl implements RepoRepository {
   @override
   Future<ApiResult<List<RepoEntity>>> getRepos() async {
     try {
-      final models = await _dataSource.getRepos();
-      return ApiSuccess(models);
+      return ApiSuccess(await _dataSource.getRepos());
     } catch (e) {
-      return ApiFailure('Failed to load repositories. Please try again.');
+      return const ApiFailure('Failed to load repositories. Please try again.');
+    }
+  }
+
+  @override
+  Future<ApiResult<RepoEntity>> getRepoById(String id) async {
+    try {
+      return ApiSuccess(await _dataSource.getRepoById(id));
+    } catch (e) {
+      return const ApiFailure('Repository not found.');
+    }
+  }
+
+  @override
+  Future<ApiResult<RepoSummaryEntity>> generateSummary(String repoId) async {
+    try {
+      return ApiSuccess(await _dataSource.generateSummary(repoId));
+    } catch (e) {
+      return const ApiFailure('Failed to generate summary. Please try again.');
     }
   }
 }
