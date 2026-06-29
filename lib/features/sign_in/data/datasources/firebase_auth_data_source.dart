@@ -2,11 +2,15 @@ import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../profile/domain/entities/user_entity.dart';
 
 class FirebaseAuthDataSource {
+  static const _callbackScheme =
+      'app-1-336914432908-ios-56c4911e793be08a78cca9';
+
   final FirebaseAuth _auth;
   final FlutterSecureStorage _storage;
 
@@ -17,17 +21,58 @@ class FirebaseAuthDataSource {
         _storage = storage ?? const FlutterSecureStorage();
 
   Future<UserEntity> signInWithGitHub() async {
-    final provider = GithubAuthProvider()
-      ..addScope('read:user')
-      ..addScope('public_repo');
+    const clientId = String.fromEnvironment('GITHUB_CLIENT_ID');
+    const clientSecret = String.fromEnvironment('GITHUB_CLIENT_SECRET');
 
-    final credential = await _auth.signInWithProvider(provider);
-    final token = (credential.credential as OAuthCredential?)?.accessToken;
-
-    if (token != null) {
-      await _storage.write(key: 'github_access_token', value: token);
+    if (clientId.isEmpty || clientSecret.isEmpty) {
+      throw Exception(
+        'Run with --dart-define=GITHUB_CLIENT_ID=... --dart-define=GITHUB_CLIENT_SECRET=...',
+      );
     }
 
+    // Step 1: Open GitHub OAuth page; waits for callback to custom scheme
+    final result = await FlutterWebAuth2.authenticate(
+      url: 'https://github.com/login/oauth/authorize'
+          '?client_id=$clientId'
+          '&scope=read:user%20public_repo',
+      callbackUrlScheme: _callbackScheme,
+    );
+
+    // Step 2: Extract authorization code
+    final code = Uri.parse(result).queryParameters['code'];
+    if (code == null) throw Exception('OAuth failed: no code in callback');
+
+    // Step 3: Exchange code for access token
+    final tokenResponse = await http.post(
+      Uri.parse('https://github.com/login/oauth/access_token'),
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: 'client_id=$clientId&client_secret=$clientSecret&code=$code',
+    );
+
+    if (tokenResponse.statusCode != 200) {
+      throw Exception('Token exchange failed: ${tokenResponse.statusCode}');
+    }
+
+    final tokenData = jsonDecode(tokenResponse.body) as Map<String, dynamic>;
+    final token = tokenData['access_token'] as String?;
+    if (token == null) {
+      final error = tokenData['error_description'] ??
+          tokenData['error'] ??
+          'Unknown error';
+      throw Exception('No access token: $error');
+    }
+
+    // Step 4: Sign into Firebase using the GitHub token
+    final credential = GithubAuthProvider.credential(token);
+    await _auth.signInWithCredential(credential);
+
+    // Step 5: Persist token for GitHub API calls
+    await _storage.write(key: 'github_access_token', value: token);
+
+    // Step 6: Return user entity from GitHub profile
     return _buildUserEntity(token);
   }
 
@@ -40,26 +85,7 @@ class FirebaseAuthDataSource {
 
   Future<String?> get accessToken => _storage.read(key: 'github_access_token');
 
-  Future<UserEntity> _buildUserEntity(String? token) async {
-    if (token == null) {
-      final fb = _auth.currentUser!;
-      final name = fb.displayName ?? '';
-      return UserEntity(
-        name: name,
-        handle: '',
-        initials: _initials(name),
-        avatarUrl: fb.photoURL,
-        bio: '',
-        location: '',
-        company: '',
-        joined: '',
-        followers: 0,
-        following: 0,
-        publicRepos: 0,
-        stars: 0,
-      );
-    }
-
+  Future<UserEntity> _buildUserEntity(String token) async {
     final response = await http.get(
       Uri.parse('https://api.github.com/user'),
       headers: {
