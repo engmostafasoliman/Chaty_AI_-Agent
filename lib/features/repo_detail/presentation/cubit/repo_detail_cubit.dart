@@ -34,4 +34,17 @@ class RepoDetailCubit extends Cubit<RepoDetailState> {
         emit(RepoDetailError(message));
     }
   }
+
+  Future<void> regenerateSummary() async {
+    final current = state;
+    if (current is! RepoDetailLoaded) return;
+    emit(RepoDetailGenerating(current.repo));
+    final result = await _generateSummary(current.repo.id, force: true);
+    switch (result) {
+      case ApiSuccess(:final data):
+        emit(RepoDetailLoaded(current.repo.withSummary(data)));
+      case ApiFailure():
+        emit(RepoDetailLoaded(current.repo));
+    }
+  }
 }

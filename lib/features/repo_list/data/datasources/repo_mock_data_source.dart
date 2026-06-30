@@ -65,7 +65,7 @@ class RepoMockDataSource implements RepoDataSource {
   }
 
   @override
-  Future<RepoSummaryModel> generateSummary(String repoId) async {
+  Future<RepoSummaryModel> generateSummary(String repoId, {bool force = false}) async {
     await Future.delayed(const Duration(milliseconds: 2200));
     return const RepoSummaryModel(
       whatItDoes: 'A keyboard-first markdown editor with a plugin architecture, local-first storage via IndexedDB, and live preview rendering using unified/remark.',

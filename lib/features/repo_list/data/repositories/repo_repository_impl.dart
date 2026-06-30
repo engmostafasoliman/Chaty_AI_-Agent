@@ -27,11 +27,11 @@ class RepoRepositoryImpl implements RepoRepository {
   }
 
   @override
-  Future<ApiResult<RepoSummaryEntity>> generateSummary(String repoId) async {
+  Future<ApiResult<RepoSummaryEntity>> generateSummary(String repoId, {bool force = false}) async {
     try {
-      return ApiSuccess(await _dataSource.generateSummary(repoId));
+      return ApiSuccess(await _dataSource.generateSummary(repoId, force: force));
     } catch (e) {
-      return const ApiFailure('Failed to generate summary. Please try again.');
+      return ApiFailure('Summary failed: $e');
     }
   }
 }

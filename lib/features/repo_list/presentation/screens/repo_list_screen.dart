@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/di/injection.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/theme_cubit.dart';
 import '../../../../core/widgets/top_bar.dart';
@@ -10,7 +9,7 @@ import '../cubit/repo_list_state.dart';
 import '../widgets/repo_card.dart';
 import '../widgets/repo_card_skeleton.dart';
 
-class RepoListScreen extends StatelessWidget {
+class RepoListScreen extends StatefulWidget {
   final ValueChanged<String>? onRepoTap;
   final VoidCallback? onProfile;
   final VoidCallback? onSettings;
@@ -18,10 +17,24 @@ class RepoListScreen extends StatelessWidget {
   const RepoListScreen({super.key, this.onRepoTap, this.onProfile, this.onSettings});
 
   @override
+  State<RepoListScreen> createState() => _RepoListScreenState();
+}
+
+class _RepoListScreenState extends State<RepoListScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<RepoListCubit>().load();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => getIt<RepoListCubit>()..load(),
-      child: _RepoListView(onRepoTap: onRepoTap, onProfile: onProfile, onSettings: onSettings),
+    return _RepoListView(
+      onRepoTap: widget.onRepoTap,
+      onProfile: widget.onProfile,
+      onSettings: widget.onSettings,
     );
   }
 }

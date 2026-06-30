@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/result/api_result.dart';
 import '../../domain/entities/repo_entity.dart';
+import '../../domain/entities/repo_summary_entity.dart';
 import '../../domain/usecases/get_repos_usecase.dart';
 import 'repo_list_state.dart';
 
@@ -51,6 +52,15 @@ class RepoListCubit extends Cubit<RepoListState> {
     if (current is! RepoListLoaded) return;
     final next = current.copyWith(searchQuery: '', selectedLanguage: 'All');
     emit(_applyFilters(next));
+  }
+
+  void markSummarized(String repoId, RepoSummaryEntity summary) {
+    final current = state;
+    if (current is! RepoListLoaded) return;
+    final updated = current.allRepos
+        .map((r) => r.id == repoId ? r.withSummary(summary) : r)
+        .toList();
+    emit(_applyFilters(current.copyWith(allRepos: updated)));
   }
 
   RepoListLoaded _applyFilters(RepoListLoaded state) {
