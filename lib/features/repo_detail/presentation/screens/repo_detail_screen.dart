@@ -22,6 +22,8 @@ class RepoDetailScreen extends StatelessWidget {
   final VoidCallback? onBack;
   final VoidCallback? onProfile;
   final VoidCallback? onSettings;
+  final VoidCallback? onSignOut;
+  final ValueChanged<RepoEntity>? onChat;
 
   const RepoDetailScreen({
     super.key,
@@ -29,6 +31,8 @@ class RepoDetailScreen extends StatelessWidget {
     this.onBack,
     this.onProfile,
     this.onSettings,
+    this.onSignOut,
+    this.onChat,
   });
 
   @override
@@ -40,6 +44,8 @@ class RepoDetailScreen extends StatelessWidget {
         onBack: onBack,
         onProfile: onProfile,
         onSettings: onSettings,
+        onSignOut: onSignOut,
+        onChat: onChat,
       ),
     );
   }
@@ -50,11 +56,15 @@ class _RepoDetailView extends StatelessWidget {
   final VoidCallback? onBack;
   final VoidCallback? onProfile;
   final VoidCallback? onSettings;
+  final VoidCallback? onSignOut;
+  final ValueChanged<RepoEntity>? onChat;
   const _RepoDetailView({
     required this.repoId,
     this.onBack,
     this.onProfile,
     this.onSettings,
+    this.onSignOut,
+    this.onChat,
   });
 
   @override
@@ -83,12 +93,33 @@ class _RepoDetailView extends StatelessWidget {
           final isDark = theme.isDark;
           return Scaffold(
             backgroundColor: AppColors.bg(isDark),
+            floatingActionButton: onChat == null
+                ? null
+                : BlocBuilder<RepoDetailCubit, RepoDetailState>(
+                    builder: (context, state) {
+                      if (state is! RepoDetailLoaded || !state.repo.summarized) {
+                        return const SizedBox.shrink();
+                      }
+                      final repo = state.repo;
+                      return FloatingActionButton.extended(
+                        onPressed: () => onChat!(repo),
+                        backgroundColor: AppColors.accent(isDark),
+                        foregroundColor: Colors.white,
+                        icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+                        label: const Text(
+                          'Ask AI',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      );
+                    },
+                  ),
             body: Column(
               children: [
                 TopBar(
                   onHome: onBack ?? () => Navigator.of(context).pop(),
                   onProfile: onProfile,
                   onSettings: onSettings,
+                  onSignOut: onSignOut,
                 ),
                 Expanded(
                   child: BlocBuilder<RepoDetailCubit, RepoDetailState>(
@@ -562,14 +593,20 @@ class _ErrorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.error_outline_rounded, size: 48, color: AppColors.danger(isDark)),
             const SizedBox(height: 16),
-            Text(message, textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: AppColors.secondary(isDark))),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              maxLines: 5,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 14, color: AppColors.secondary(isDark)),
+            ),
             const SizedBox(height: 20),
             GestureDetector(
               onTap: onRetry,
