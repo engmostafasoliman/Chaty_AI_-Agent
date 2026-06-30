@@ -13,6 +13,7 @@ import '../../../repo_list/presentation/cubit/repo_list_cubit.dart';
 import '../../../settings/presentation/cubit/settings_cubit.dart';
 import '../../../settings/presentation/cubit/settings_state.dart';
 import '../cubit/repo_detail_cubit.dart';
+import '../widgets/repo_detail_skeleton.dart';
 import '../cubit/repo_detail_state.dart';
 import '../widgets/confidence_badge.dart';
 import '../widgets/tech_chip.dart';
@@ -635,9 +636,7 @@ class _LoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: CircularProgressIndicator(color: AppColors.accent(isDark)),
-    );
+    return RepoDetailSkeleton(isDark: isDark);
   }
 }
 

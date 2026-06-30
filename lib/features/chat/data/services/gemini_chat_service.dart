@@ -13,7 +13,7 @@ class GeminiChatService {
 
   const GeminiChatService({
     required this.apiKey,
-    this.model = 'gemini-flash-latest',
+    this.model = 'gemini-2.0-flash',
   });
 
   static const String _baseUrl =

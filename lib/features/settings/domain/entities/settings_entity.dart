@@ -20,7 +20,7 @@ class SettingsEntity {
   });
 
   static const defaults = SettingsEntity(
-    geminiModel: 'gemini-flash-latest',
+    geminiModel: 'gemini-2.0-flash',
     autoSummarize: true,
     cacheResults: true,
     minConfidence: 'medium',

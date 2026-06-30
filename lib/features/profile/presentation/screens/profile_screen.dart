@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/di/injection.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -8,6 +9,7 @@ import '../../../../core/widgets/top_bar.dart';
 import '../../../repo_list/domain/entities/repo_entity.dart';
 import '../../../repo_list/presentation/widgets/repo_card.dart';
 import '../../domain/entities/user_entity.dart';
+import '../widgets/profile_skeleton.dart';
 import '../cubit/profile_cubit.dart';
 import '../cubit/profile_state.dart';
 
@@ -64,9 +66,8 @@ class _ProfileView extends StatelessWidget {
               Expanded(
                 child: BlocBuilder<ProfileCubit, ProfileState>(
                   builder: (context, state) => switch (state) {
-                    ProfileInitial() || ProfileLoading() => Center(
-                        child: CircularProgressIndicator(color: AppColors.accent(isDark)),
-                      ),
+                    ProfileInitial() || ProfileLoading() =>
+                        ProfileSkeleton(isDark: isDark),
                     ProfileLoaded(:final user, :final ownedRepos) => _LoadedContent(
                         user: user,
                         ownedRepos: ownedRepos,
@@ -239,13 +240,19 @@ class _ProfileHeader extends StatelessWidget {
                         ],
                       ),
                     ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('View on GitHub', style: TextStyle(fontSize: 13, color: accent)),
-                        const SizedBox(width: 4),
-                        Icon(Icons.open_in_new, size: 14, color: accent),
-                      ],
+                    GestureDetector(
+                      onTap: () => launchUrl(
+                        Uri.parse('https://github.com/${user.handle}'),
+                        mode: LaunchMode.externalApplication,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('View on GitHub', style: TextStyle(fontSize: 13, color: accent)),
+                          const SizedBox(width: 4),
+                          Icon(Icons.open_in_new, size: 14, color: accent),
+                        ],
+                      ),
                     ),
                   ],
                 ),

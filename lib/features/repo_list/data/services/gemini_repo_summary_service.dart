@@ -21,7 +21,7 @@ class GeminiRepoSummaryService {
     required Map<String, int> languages,
     required int stars,
     required String readme,
-    String model = 'gemini-flash-latest',
+    String model = 'gemini-2.0-flash',
   }) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/$model:generateContent'),
