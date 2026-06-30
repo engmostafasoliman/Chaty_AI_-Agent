@@ -79,6 +79,7 @@ class _ChatViewState extends State<_ChatView> {
           builder: (context, state) {
             final isLoading = state is ChatLoading;
             final errorMsg = state is ChatError ? state.error : null;
+            final rateLimit = state is ChatRateLimit ? state : null;
             final title = widget.repo != null
                 ? 'Ask about ${widget.repo!.name}'
                 : 'Chaty Agent';
@@ -101,6 +102,7 @@ class _ChatViewState extends State<_ChatView> {
                   children: [
                     Text(
                       title,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -142,6 +144,13 @@ class _ChatViewState extends State<_ChatView> {
                       emptyLabel: emptyLabel,
                     ),
                   ),
+                  if (rateLimit != null)
+                    _RateLimitCard(
+                      secondsRemaining: rateLimit.secondsRemaining,
+                      isDark: isDark,
+                      onRetryNow: () => context.read<SendMessageCubit>().retry(),
+                      onDismiss: () => context.read<SendMessageCubit>().dismissError(),
+                    ),
                   if (errorMsg != null)
                     _ErrorCard(
                       message: errorMsg,
@@ -153,7 +162,7 @@ class _ChatViewState extends State<_ChatView> {
                     controller: _controller,
                     focusNode: _focusNode,
                     isLoading: isLoading,
-                    isCoolingDown: state.isCoolingDown,
+                    isCoolingDown: state.isCoolingDown || state is ChatRateLimit,
                     isDark: isDark,
                     onSend: _send,
                   ),
@@ -163,6 +172,63 @@ class _ChatViewState extends State<_ChatView> {
           },
         );
       },
+    );
+  }
+}
+
+class _RateLimitCard extends StatelessWidget {
+  final int secondsRemaining;
+  final bool isDark;
+  final VoidCallback onRetryNow;
+  final VoidCallback onDismiss;
+
+  const _RateLimitCard({
+    required this.secondsRemaining,
+    required this.isDark,
+    required this.onRetryNow,
+    required this.onDismiss,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = AppColors.warning(isDark);
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.hourglass_top_rounded, size: 18, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Quota reached — retrying in ${secondsRemaining}s',
+              style: TextStyle(fontSize: 13, color: color),
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: onRetryNow,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Text('Now', style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w600)),
+            ),
+          ),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: onDismiss,
+            child: Icon(Icons.close_rounded, size: 18, color: AppColors.secondary(isDark)),
+          ),
+        ],
+      ),
     );
   }
 }

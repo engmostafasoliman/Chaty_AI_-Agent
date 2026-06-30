@@ -404,14 +404,20 @@ class _ErrorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.error_outline_rounded, size: 48, color: AppColors.danger(isDark)),
             const SizedBox(height: 16),
-            Text(message, textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: AppColors.secondary(isDark))),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              maxLines: 5,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 14, color: AppColors.secondary(isDark)),
+            ),
             const SizedBox(height: 20),
             GestureDetector(
               onTap: onRetry,

@@ -23,6 +23,8 @@ class GeminiChatRepositoryImpl implements ChatRepository {
       final response = await _service.sendMessages(models);
 
       return ApiSuccess(ChatMessage(role: response.role, text: response.text));
+    } on RateLimitException {
+      return const ApiRateLimit();
     } on AppException catch (e) {
       return ApiFailure(_humanize(e));
     } catch (e) {

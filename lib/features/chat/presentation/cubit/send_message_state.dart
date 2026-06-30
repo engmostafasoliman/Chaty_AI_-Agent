@@ -21,3 +21,10 @@ final class ChatError extends SendMessageState {
   final String error;
   const ChatError(super.messages, this.error);
 }
+
+/// Emitted when the API returns 429. Counts down to auto-retry.
+final class ChatRateLimit extends SendMessageState {
+  final List<ChatMessage> pendingHistory;
+  final int secondsRemaining;
+  const ChatRateLimit(super.messages, this.pendingHistory, this.secondsRemaining);
+}

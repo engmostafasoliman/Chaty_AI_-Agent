@@ -25,6 +25,8 @@ class RepoDetailCubit extends Cubit<RepoDetailState> {
         }
       case ApiFailure(:final message):
         emit(RepoDetailError(message));
+      case ApiRateLimit():
+        emit(const RepoDetailError('Service temporarily unavailable. Please try again.'));
     }
   }
 
@@ -38,6 +40,8 @@ class RepoDetailCubit extends Cubit<RepoDetailState> {
         emit(RepoDetailLoaded(current.repo.withSummary(data)));
       case ApiFailure(:final message):
         emit(RepoDetailError(message));
+      case ApiRateLimit():
+        emit(const RepoDetailError('Service temporarily unavailable. Please try again.'));
     }
   }
 
@@ -50,6 +54,7 @@ class RepoDetailCubit extends Cubit<RepoDetailState> {
       case ApiSuccess(:final data):
         emit(RepoDetailLoaded(current.repo.withSummary(data)));
       case ApiFailure():
+      case ApiRateLimit():
         emit(RepoDetailLoaded(current.repo));
     }
   }

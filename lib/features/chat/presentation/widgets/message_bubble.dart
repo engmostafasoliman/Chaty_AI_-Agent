@@ -40,6 +40,8 @@ class MessageBubble extends StatelessWidget {
               ),
               child: Text(
                 text,
+                softWrap: true,
+                overflow: TextOverflow.clip,
                 style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.45),
               ),
             ),
@@ -82,6 +84,8 @@ class MessageBubble extends StatelessWidget {
                 ),
                 child: Text(
                   text,
+                  softWrap: true,
+                  overflow: TextOverflow.clip,
                   style: TextStyle(
                     color: AppColors.text(isDark),
                     fontSize: 15,

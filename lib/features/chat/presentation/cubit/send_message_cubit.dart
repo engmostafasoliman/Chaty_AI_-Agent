@@ -11,8 +11,10 @@ import 'send_message_state.dart';
 class SendMessageCubit extends Cubit<SendMessageState> {
   final SendMessageUseCase _useCase;
   Timer? _cooldownTimer;
+  Timer? _rateLimitTimer;
 
   static const _cooldownDuration = Duration(seconds: 5);
+  static const _rateLimitRetrySeconds = 15;
 
   SendMessageCubit(this._useCase) : super(const ChatIdle());
 
@@ -43,18 +45,45 @@ class SendMessageCubit extends Cubit<SendMessageState> {
   }
 
   Future<void> send(String text) async {
-    if (text.trim().isEmpty || state.isCoolingDown) return;
-    final current = state;
+    final s = state;
+    if (text.trim().isEmpty || s.isCoolingDown || s is ChatRateLimit) return;
     final userMsg = ChatMessage(role: 'user', text: text.trim());
-    final history = [...current.messages, userMsg];
-    emit(ChatLoading(history));
+    await _doSend([...s.messages, userMsg]);
+  }
 
+  Future<void> retry() async {
+    final s = state;
+    if (s is ChatError) {
+      await _doSend(s.messages);
+    } else if (s is ChatRateLimit) {
+      _cancelRateLimit();
+      await _doSend(s.pendingHistory);
+    }
+  }
+
+  void dismissError() {
+    final s = state;
+    if (s is ChatError) {
+      emit(ChatIdle(s.messages));
+    } else if (s is ChatRateLimit) {
+      _cancelRateLimit();
+      // Drop the pending unsent user message from displayed history
+      final msgs = s.pendingHistory;
+      final lastUserIdx = msgs.lastIndexWhere((m) => m.role == 'user' && !m.isHidden);
+      emit(ChatIdle(lastUserIdx >= 0 ? msgs.sublist(0, lastUserIdx) : msgs));
+    }
+  }
+
+  Future<void> _doSend(List<ChatMessage> history) async {
+    emit(ChatLoading(history));
     final result = await _useCase(history);
     switch (result) {
       case ApiSuccess(:final data):
         final messages = [...history, data];
         emit(ChatIdle(messages, true));
         _startCooldown(messages);
+      case ApiRateLimit():
+        _startRateLimitCountdown(history);
       case ApiFailure(:final message):
         emit(ChatError(history, message));
     }
@@ -67,33 +96,31 @@ class SendMessageCubit extends Cubit<SendMessageState> {
     });
   }
 
-  Future<void> retry() async {
-    final current = state;
-    if (current is! ChatError) return;
-    // Last message in history is the user message that failed — resend it
-    final history = current.messages;
-    if (history.isEmpty) return;
-    emit(ChatLoading(history));
-    final result = await _useCase(history);
-    switch (result) {
-      case ApiSuccess(:final data):
-        final messages = [...history, data];
-        emit(ChatIdle(messages, true));
-        _startCooldown(messages);
-      case ApiFailure(:final message):
-        emit(ChatError(history, message));
-    }
+  void _startRateLimitCountdown(List<ChatMessage> pendingHistory) {
+    _cancelRateLimit();
+    emit(ChatRateLimit(pendingHistory, pendingHistory, _rateLimitRetrySeconds));
+    var remaining = _rateLimitRetrySeconds;
+    _rateLimitTimer = Timer.periodic(const Duration(seconds: 1), (t) async {
+      if (isClosed) { t.cancel(); return; }
+      remaining--;
+      if (remaining <= 0) {
+        t.cancel();
+        await _doSend(pendingHistory);
+      } else {
+        emit(ChatRateLimit(pendingHistory, pendingHistory, remaining));
+      }
+    });
   }
 
-  void dismissError() {
-    final current = state;
-    if (current is! ChatError) return;
-    emit(ChatIdle(current.messages));
+  void _cancelRateLimit() {
+    _rateLimitTimer?.cancel();
+    _rateLimitTimer = null;
   }
 
   @override
   Future<void> close() {
     _cooldownTimer?.cancel();
+    _rateLimitTimer?.cancel();
     return super.close();
   }
 }

@@ -23,6 +23,8 @@ class RepoListCubit extends Cubit<RepoListState> {
         ));
       case ApiFailure(:final message):
         emit(RepoListError(message));
+      case ApiRateLimit():
+        emit(const RepoListError('Service temporarily unavailable. Please try again.'));
     }
   }
 
