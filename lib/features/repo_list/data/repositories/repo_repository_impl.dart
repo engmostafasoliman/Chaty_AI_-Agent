@@ -1,3 +1,4 @@
+import '../../../../core/error/app_exception.dart';
 import '../../../../core/result/api_result.dart';
 import '../../domain/entities/repo_entity.dart';
 import '../../domain/entities/repo_summary_entity.dart';
@@ -30,8 +31,10 @@ class RepoRepositoryImpl implements RepoRepository {
   Future<ApiResult<RepoSummaryEntity>> generateSummary(String repoId, {bool force = false}) async {
     try {
       return ApiSuccess(await _dataSource.generateSummary(repoId, force: force));
+    } on RateLimitException {
+      return const ApiRateLimit();
     } catch (e) {
-      return ApiFailure('Summary failed: $e');
+      return const ApiFailure('Failed to generate summary. Please try again.');
     }
   }
 

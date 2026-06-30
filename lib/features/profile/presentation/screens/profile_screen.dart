@@ -204,18 +204,18 @@ class _ProfileHeader extends StatelessWidget {
                   height: 80,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF2F81F7), Color(0xFF9b6dff)],
-                    ),
                     border: Border.all(color: AppColors.surface(isDark), width: 4),
                   ),
-                  child: Center(
-                    child: Text(
-                      user.initials,
-                      style: const TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.w600),
-                    ),
+                  child: ClipOval(
+                    child: user.avatarUrl != null
+                        ? Image.network(
+                            user.avatarUrl!,
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _AvatarFallback(initials: user.initials),
+                          )
+                        : _AvatarFallback(initials: user.initials),
                   ),
                 ),
               ),
@@ -368,6 +368,30 @@ class _StatsGrid extends StatelessWidget {
   }
 
   String _fmt(int n) => n >= 1000 ? '${(n / 1000).toStringAsFixed(1)}k' : '$n';
+}
+
+class _AvatarFallback extends StatelessWidget {
+  final String initials;
+  const _AvatarFallback({required this.initials});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.transparent,
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF2F81F7), Color(0xFF9b6dff)],
+          ),
+        ),
+        child: Center(
+          child: Text(initials, style: const TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.w600)),
+        ),
+      ),
+    );
+  }
 }
 
 class _BannerPainter extends CustomPainter {

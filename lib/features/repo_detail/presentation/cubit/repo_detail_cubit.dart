@@ -1,14 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/result/api_result.dart';
 import '../../../repo_list/domain/usecases/generate_summary_usecase.dart';
 import '../../../repo_list/domain/usecases/get_repo_detail_usecase.dart';
 import '../../../settings/domain/repositories/settings_repository.dart';
+import '../../../repo_list/domain/entities/repo_entity.dart';
 import 'repo_detail_state.dart';
 
 class RepoDetailCubit extends Cubit<RepoDetailState> {
   final GetRepoDetailUseCase _getDetail;
   final GenerateSummaryUseCase _generateSummary;
   final SettingsRepository _settingsRepo;
+  Timer? _rateLimitTimer;
+
+  static const _rateLimitRetrySeconds = 15;
 
   RepoDetailCubit(this._getDetail, this._generateSummary, this._settingsRepo)
       : super(const RepoDetailInitial());
@@ -30,32 +36,56 @@ class RepoDetailCubit extends Cubit<RepoDetailState> {
     }
   }
 
-  Future<void> generateSummary() async {
+  Future<void> generateSummary({bool force = false}) async {
     final current = state;
-    if (current is! RepoDetailLoaded) return;
-    emit(RepoDetailGenerating(current.repo));
-    final result = await _generateSummary(current.repo.id);
+    final repo = _repoFrom(current);
+    if (repo == null) return;
+    _cancelRateLimit();
+    emit(RepoDetailGenerating(repo));
+    final result = await _generateSummary(repo.id, force: force);
     switch (result) {
       case ApiSuccess(:final data):
-        emit(RepoDetailLoaded(current.repo.withSummary(data)));
+        emit(RepoDetailLoaded(repo.withSummary(data)));
+      case ApiRateLimit():
+        _startRateLimitCountdown(repo, force: force);
       case ApiFailure(:final message):
         emit(RepoDetailError(message));
-      case ApiRateLimit():
-        emit(const RepoDetailError('Service temporarily unavailable. Please try again.'));
     }
   }
 
-  Future<void> regenerateSummary() async {
-    final current = state;
-    if (current is! RepoDetailLoaded) return;
-    emit(RepoDetailGenerating(current.repo));
-    final result = await _generateSummary(current.repo.id, force: true);
-    switch (result) {
-      case ApiSuccess(:final data):
-        emit(RepoDetailLoaded(current.repo.withSummary(data)));
-      case ApiFailure():
-      case ApiRateLimit():
-        emit(RepoDetailLoaded(current.repo));
-    }
+  Future<void> regenerateSummary() => generateSummary(force: true);
+
+  void _startRateLimitCountdown(RepoEntity repo, {bool force = false}) {
+    _cancelRateLimit();
+    emit(RepoDetailRateLimit(repo, _rateLimitRetrySeconds));
+    var remaining = _rateLimitRetrySeconds;
+    _rateLimitTimer = Timer.periodic(const Duration(seconds: 1), (t) async {
+      if (isClosed) { t.cancel(); return; }
+      remaining--;
+      if (remaining <= 0) {
+        t.cancel();
+        await generateSummary(force: force);
+      } else {
+        emit(RepoDetailRateLimit(repo, remaining));
+      }
+    });
+  }
+
+  void _cancelRateLimit() {
+    _rateLimitTimer?.cancel();
+    _rateLimitTimer = null;
+  }
+
+  RepoEntity? _repoFrom(RepoDetailState state) => switch (state) {
+    RepoDetailLoaded(:final repo) => repo,
+    RepoDetailGenerating(:final repo) => repo,
+    RepoDetailRateLimit(:final repo) => repo,
+    _ => null,
+  };
+
+  @override
+  Future<void> close() {
+    _cancelRateLimit();
+    return super.close();
   }
 }

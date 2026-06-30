@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../di/injection.dart';
 import '../theme/app_colors.dart';
 import '../theme/theme_cubit.dart';
+import '../../features/profile/domain/entities/user_entity.dart';
 
 class TopBar extends StatelessWidget {
   final String? searchQuery;
@@ -189,19 +191,68 @@ class _ProfileButton extends StatelessWidget {
         PopupMenuDivider(color: AppColors.border(isDark), height: 1),
         PopupMenuItem(value: 'signout', child: Row(children: [Icon(Icons.logout, size: 16, color: AppColors.danger(isDark)), const SizedBox(width: 8), Text('Sign out', style: TextStyle(color: AppColors.danger(isDark)))])),
       ],
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF2F81F7), Color(0xFF9b6dff)],
-          ),
+      child: _AvatarButton(),
+    );
+  }
+}
+
+class _AvatarButton extends StatelessWidget {
+  const _AvatarButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final user = getIt.isRegistered<UserEntity>() ? getIt<UserEntity>() : null;
+    final avatarUrl = user?.avatarUrl;
+    final initials = user?.initials ?? '';
+
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: avatarUrl == null
+            ? const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF2F81F7), Color(0xFF9b6dff)],
+              )
+            : null,
+      ),
+      child: ClipOval(
+        child: avatarUrl != null
+            ? Image.network(
+                avatarUrl,
+                width: 36,
+                height: 36,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _InitialsFallback(initials: initials),
+              )
+            : _InitialsFallback(initials: initials),
+      ),
+    );
+  }
+}
+
+class _InitialsFallback extends StatelessWidget {
+  final String initials;
+  const _InitialsFallback({required this.initials});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF2F81F7), Color(0xFF9b6dff)],
         ),
-        child: const Center(
-          child: Text('MS', style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w600)),
+      ),
+      child: Center(
+        child: Text(
+          initials,
+          style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w600),
         ),
       ),
     );

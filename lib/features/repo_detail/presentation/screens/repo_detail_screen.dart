@@ -136,6 +136,12 @@ class _RepoDetailView extends StatelessWidget {
                           isDark: isDark,
                           generating: true,
                         ),
+                      RepoDetailRateLimit(:final repo, :final secondsRemaining) =>
+                        _RateLimitView(
+                          repo: repo,
+                          secondsRemaining: secondsRemaining,
+                          isDark: isDark,
+                        ),
                       RepoDetailError(:final message) => _ErrorView(
                           message: message,
                           isDark: isDark,
@@ -158,17 +164,21 @@ class _DetailContent extends StatelessWidget {
   final RepoEntity repo;
   final bool isDark;
   final bool generating;
+  final Widget? rateLimitBanner;
 
   const _DetailContent({
     required this.repo,
     required this.isDark,
     required this.generating,
+    this.rateLimitBanner,
   });
 
   @override
   Widget build(BuildContext context) {
     return CustomScrollView(
       slivers: [
+        if (rateLimitBanner != null)
+          SliverToBoxAdapter(child: rateLimitBanner!),
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -567,6 +577,53 @@ class _NotSummarizedCard extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _RateLimitView extends StatelessWidget {
+  final RepoEntity repo;
+  final int secondsRemaining;
+  final bool isDark;
+  const _RateLimitView({required this.repo, required this.secondsRemaining, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = AppColors.accent(isDark);
+    return _DetailContent(
+      repo: repo,
+      isDark: isDark,
+      generating: false,
+      rateLimitBanner: Container(
+        margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.warning(isDark).withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.warning(isDark).withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.hourglass_top_rounded, size: 16, color: AppColors.warning(isDark)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'API quota reached — retrying in ${secondsRemaining}s',
+                style: TextStyle(fontSize: 13, color: AppColors.warning(isDark)),
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () => context.read<RepoDetailCubit>().generateSummary(),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(color: accent, borderRadius: BorderRadius.circular(6)),
+                child: const Text('Now', style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

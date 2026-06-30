@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../../../../core/error/app_exception.dart';
 import '../models/repo_summary_model.dart';
 
 class GeminiRepoSummaryService {
@@ -39,8 +40,11 @@ class GeminiRepoSummaryService {
       }),
     ).timeout(const Duration(seconds: 45));
 
+    if (response.statusCode == 429) {
+      throw const RateLimitException();
+    }
     if (response.statusCode != 200) {
-      throw Exception('Gemini API error ${response.statusCode}: ${response.body}');
+      throw ServerException(response.statusCode);
     }
 
     final json = jsonDecode(response.body) as Map<String, dynamic>;

@@ -38,6 +38,8 @@ void main() async {
 final _navigatorKey = GlobalKey<NavigatorState>();
 
 void _onSignIn(UserEntity user) {
+  if (getIt.isRegistered<UserEntity>()) getIt.unregister<UserEntity>();
+  getIt.registerSingleton<UserEntity>(user);
   _navigatorKey.currentState?.pushReplacement(
     MaterialPageRoute(
       builder: (_) => RepoListScreen(
