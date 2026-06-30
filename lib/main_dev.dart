@@ -7,8 +7,10 @@ import 'core/di/injection.dart';
 import 'core/theme/theme_cubit.dart';
 import 'firebase_options.dart';
 import 'features/profile/domain/entities/user_entity.dart';
+import 'features/repo_list/data/datasources/repo_data_source.dart';
 import 'features/repo_list/presentation/cubit/repo_list_cubit.dart';
 import 'features/settings/presentation/cubit/settings_cubit.dart';
+import 'features/sign_in/domain/repositories/auth_repository.dart';
 import 'features/sign_in/presentation/screens/sign_in_screen.dart';
 import 'features/repo_list/presentation/screens/repo_list_screen.dart';
 import 'features/repo_detail/presentation/screens/repo_detail_screen.dart';
@@ -29,13 +31,32 @@ void main() async {
 
 final _navigatorKey = GlobalKey<NavigatorState>();
 
+void _onSignIn(UserEntity user) {
+  _navigatorKey.currentState?.pushReplacement(
+    MaterialPageRoute(
+      builder: (_) => RepoListScreen(
+        onRepoTap: _goToDetail,
+        onProfile: _goToProfile,
+        onSettings: _goToSettings,
+        onSignOut: _signOut,
+      ),
+    ),
+  );
+}
+
+void _signOut() async {
+  await getIt<AuthRepository>().signOut();
+  await getIt<RepoDataSource>().clearSummaries();
+  _navigatorKey.currentState?.pushAndRemoveUntil(
+    MaterialPageRoute(builder: (_) => SignInScreen(onSignIn: _onSignIn)),
+    (route) => false,
+  );
+}
+
 void _goToSettings() => _navigatorKey.currentState?.push(
       MaterialPageRoute(
         builder: (_) => SettingsScreen(
-          onSignOut: () => _navigatorKey.currentState?.pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => SignInScreen(onSignIn: (_) {})),
-            (route) => false,
-          ),
+          onSignOut: _signOut,
         ),
       ),
     );
@@ -46,6 +67,7 @@ void _goToDetail(String repoId) => _navigatorKey.currentState?.push(
           repoId: repoId,
           onProfile: _goToProfile,
           onSettings: _goToSettings,
+          onSignOut: _signOut,
         ),
       ),
     );
@@ -55,6 +77,7 @@ void _goToProfile() => _navigatorKey.currentState?.push(
         builder: (_) => ProfileScreen(
           onRepoTap: _goToDetail,
           onSettings: _goToSettings,
+          onSignOut: _signOut,
         ),
       ),
     );
@@ -81,18 +104,7 @@ class MyApp extends StatelessWidget {
             themeMode: theme.mode,
             theme: ThemeData.light(useMaterial3: true),
             darkTheme: ThemeData.dark(useMaterial3: true),
-            home: SignInScreen(
-              onSignIn: (UserEntity user) =>
-                  _navigatorKey.currentState?.pushReplacement(
-                MaterialPageRoute(
-                  builder: (_) => RepoListScreen(
-                    onRepoTap: _goToDetail,
-                    onProfile: _goToProfile,
-                    onSettings: _goToSettings,
-                  ),
-                ),
-              ),
-            ),
+            home: SignInScreen(onSignIn: _onSignIn),
           );
         },
       ),

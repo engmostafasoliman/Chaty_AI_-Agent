@@ -22,6 +22,7 @@ class RepoDetailScreen extends StatelessWidget {
   final VoidCallback? onBack;
   final VoidCallback? onProfile;
   final VoidCallback? onSettings;
+  final VoidCallback? onSignOut;
 
   const RepoDetailScreen({
     super.key,
@@ -29,6 +30,7 @@ class RepoDetailScreen extends StatelessWidget {
     this.onBack,
     this.onProfile,
     this.onSettings,
+    this.onSignOut,
   });
 
   @override
@@ -40,6 +42,7 @@ class RepoDetailScreen extends StatelessWidget {
         onBack: onBack,
         onProfile: onProfile,
         onSettings: onSettings,
+        onSignOut: onSignOut,
       ),
     );
   }
@@ -50,11 +53,13 @@ class _RepoDetailView extends StatelessWidget {
   final VoidCallback? onBack;
   final VoidCallback? onProfile;
   final VoidCallback? onSettings;
+  final VoidCallback? onSignOut;
   const _RepoDetailView({
     required this.repoId,
     this.onBack,
     this.onProfile,
     this.onSettings,
+    this.onSignOut,
   });
 
   @override
@@ -89,6 +94,7 @@ class _RepoDetailView extends StatelessWidget {
                   onHome: onBack ?? () => Navigator.of(context).pop(),
                   onProfile: onProfile,
                   onSettings: onSettings,
+                  onSignOut: onSignOut,
                 ),
                 Expanded(
                   child: BlocBuilder<RepoDetailCubit, RepoDetailState>(
