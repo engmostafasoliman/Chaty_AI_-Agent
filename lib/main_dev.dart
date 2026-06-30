@@ -7,6 +7,7 @@ import 'core/di/injection.dart';
 import 'core/theme/theme_cubit.dart';
 import 'firebase_options.dart';
 import 'features/profile/domain/entities/user_entity.dart';
+import 'features/repo_list/presentation/cubit/repo_list_cubit.dart';
 import 'features/sign_in/presentation/screens/sign_in_screen.dart';
 import 'features/repo_list/presentation/screens/repo_list_screen.dart';
 import 'features/repo_detail/presentation/screens/repo_detail_screen.dart';
@@ -27,6 +28,36 @@ void main() async {
 
 final _navigatorKey = GlobalKey<NavigatorState>();
 
+void _goToSettings() => _navigatorKey.currentState?.push(
+      MaterialPageRoute(
+        builder: (_) => SettingsScreen(
+          onSignOut: () => _navigatorKey.currentState?.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => SignInScreen(onSignIn: (_) {})),
+            (route) => false,
+          ),
+        ),
+      ),
+    );
+
+void _goToDetail(String repoId) => _navigatorKey.currentState?.push(
+      MaterialPageRoute(
+        builder: (_) => RepoDetailScreen(
+          repoId: repoId,
+          onProfile: _goToProfile,
+          onSettings: _goToSettings,
+        ),
+      ),
+    );
+
+void _goToProfile() => _navigatorKey.currentState?.push(
+      MaterialPageRoute(
+        builder: (_) => ProfileScreen(
+          onRepoTap: _goToDetail,
+          onSettings: _goToSettings,
+        ),
+      ),
+    );
+
 class MyApp extends StatelessWidget {
   final String appName;
   final bool isDev;
@@ -34,8 +65,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<ThemeCubit>(
-      create: (_) => getIt<ThemeCubit>(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<ThemeCubit>(create: (_) => getIt<ThemeCubit>()),
+        BlocProvider<RepoListCubit>(create: (_) => getIt<RepoListCubit>()),
+      ],
       child: BlocBuilder<ThemeCubit, ThemeMode>(
         builder: (context, themeMode) {
           return MaterialApp(
@@ -46,37 +80,13 @@ class MyApp extends StatelessWidget {
             theme: ThemeData.light(useMaterial3: true),
             darkTheme: ThemeData.dark(useMaterial3: true),
             home: SignInScreen(
-              onSignIn: (UserEntity user) => _navigatorKey.currentState?.pushReplacement(
+              onSignIn: (UserEntity user) =>
+                  _navigatorKey.currentState?.pushReplacement(
                 MaterialPageRoute(
                   builder: (_) => RepoListScreen(
-                    onRepoTap: (id) => _navigatorKey.currentState?.push(
-                      MaterialPageRoute(builder: (_) => RepoDetailScreen(repoId: id)),
-                    ),
-                    onProfile: () => _navigatorKey.currentState?.push(
-                      MaterialPageRoute(
-                        builder: (_) => ProfileScreen(
-                          onRepoTap: (id) => _navigatorKey.currentState?.push(
-                            MaterialPageRoute(builder: (_) => RepoDetailScreen(repoId: id)),
-                          ),
-                          onSettings: () => _navigatorKey.currentState?.push(
-                            MaterialPageRoute(builder: (_) => SettingsScreen(
-                              onSignOut: () => _navigatorKey.currentState?.pushAndRemoveUntil(
-                                MaterialPageRoute(builder: (_) => SignInScreen(onSignIn: (_) {})),
-                                (route) => false,
-                              ),
-                            )),
-                          ),
-                        ),
-                      ),
-                    ),
-                    onSettings: () => _navigatorKey.currentState?.push(
-                      MaterialPageRoute(builder: (_) => SettingsScreen(
-                        onSignOut: () => _navigatorKey.currentState?.pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (_) => SignInScreen(onSignIn: (_) {})),
-                          (route) => false,
-                        ),
-                      )),
-                    ),
+                    onRepoTap: _goToDetail,
+                    onProfile: _goToProfile,
+                    onSettings: _goToSettings,
                   ),
                 ),
               ),

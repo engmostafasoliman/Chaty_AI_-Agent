@@ -8,6 +8,7 @@ import '../../features/chat/domain/repositories/chat_repository.dart';
 import '../../features/chat/domain/usecases/send_message_use_case.dart';
 import '../../features/chat/presentation/cubit/send_message_cubit.dart';
 import '../../features/repo_list/data/datasources/github_repo_data_source.dart';
+import '../../features/repo_list/data/datasources/repo_summary_db.dart';
 import '../../features/repo_list/data/services/gemini_repo_summary_service.dart';
 import '../../features/repo_list/data/datasources/repo_data_source.dart';
 import '../../features/repo_list/data/repositories/repo_repository_impl.dart';
@@ -48,8 +49,9 @@ void setupDependencies(AppConfig config) {
   getIt.registerLazySingleton<GeminiRepoSummaryService>(
     () => GeminiRepoSummaryService(config.geminiApiKey),
   );
+  getIt.registerLazySingleton<RepoSummaryDb>(() => RepoSummaryDb());
   getIt.registerLazySingleton<RepoDataSource>(
-    () => GitHubRepoDataSource(gemini: getIt()),
+    () => GitHubRepoDataSource(gemini: getIt(), db: getIt()),
   );
   getIt.registerLazySingleton<RepoRepository>(
     () => RepoRepositoryImpl(getIt()),

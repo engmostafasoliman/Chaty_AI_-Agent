@@ -6,6 +6,6 @@ class GenerateSummaryUseCase {
   final RepoRepository _repository;
   const GenerateSummaryUseCase(this._repository);
 
-  Future<ApiResult<RepoSummaryEntity>> call(String repoId) =>
-      _repository.generateSummary(repoId);
+  Future<ApiResult<RepoSummaryEntity>> call(String repoId, {bool force = false}) =>
+      _repository.generateSummary(repoId, force: force);
 }

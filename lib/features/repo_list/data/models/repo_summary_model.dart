@@ -20,4 +20,12 @@ class RepoSummaryModel extends RepoSummaryEntity {
           orElse: () => ConfidenceLevel.medium,
         ),
       );
+
+  Map<String, dynamic> toJson() => {
+        'whatItDoes': whatItDoes,
+        'techStack': techStack,
+        'strengths': strengths,
+        'weaknesses': weaknesses,
+        'confidence': confidence.name,
+      };
 }

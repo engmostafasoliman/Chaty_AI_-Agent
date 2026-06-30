@@ -9,6 +9,7 @@ import '../../../../core/widgets/status_pill.dart';
 import '../../../../core/widgets/top_bar.dart';
 import '../../../repo_list/domain/entities/repo_entity.dart';
 import '../../../repo_list/domain/entities/repo_summary_entity.dart';
+import '../../../repo_list/presentation/cubit/repo_list_cubit.dart';
 import '../cubit/repo_detail_cubit.dart';
 import '../cubit/repo_detail_state.dart';
 import '../widgets/confidence_badge.dart';
@@ -17,14 +18,27 @@ import '../widgets/tech_chip.dart';
 class RepoDetailScreen extends StatelessWidget {
   final String repoId;
   final VoidCallback? onBack;
+  final VoidCallback? onProfile;
+  final VoidCallback? onSettings;
 
-  const RepoDetailScreen({super.key, required this.repoId, this.onBack});
+  const RepoDetailScreen({
+    super.key,
+    required this.repoId,
+    this.onBack,
+    this.onProfile,
+    this.onSettings,
+  });
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => getIt<RepoDetailCubit>()..load(repoId),
-      child: _RepoDetailView(repoId: repoId, onBack: onBack),
+      child: _RepoDetailView(
+        repoId: repoId,
+        onBack: onBack,
+        onProfile: onProfile,
+        onSettings: onSettings,
+      ),
     );
   }
 }
@@ -32,46 +46,66 @@ class RepoDetailScreen extends StatelessWidget {
 class _RepoDetailView extends StatelessWidget {
   final String repoId;
   final VoidCallback? onBack;
-  const _RepoDetailView({required this.repoId, this.onBack});
+  final VoidCallback? onProfile;
+  final VoidCallback? onSettings;
+  const _RepoDetailView({
+    required this.repoId,
+    this.onBack,
+    this.onProfile,
+    this.onSettings,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<ThemeCubit, ThemeMode>(
-      builder: (context, themeMode) {
-        final isDark = themeMode == ThemeMode.dark;
-        return Scaffold(
-          backgroundColor: AppColors.bg(isDark),
-          body: Column(
-            children: [
-              TopBar(onHome: onBack ?? () => Navigator.of(context).pop()),
-              Expanded(
-                child: BlocBuilder<RepoDetailCubit, RepoDetailState>(
-                  builder: (context, state) => switch (state) {
-                    RepoDetailInitial() || RepoDetailLoading() =>
-                      _LoadingView(isDark: isDark),
-                    RepoDetailLoaded(:final repo) => _DetailContent(
-                        repo: repo,
-                        isDark: isDark,
-                        generating: false,
-                      ),
-                    RepoDetailGenerating(:final repo) => _DetailContent(
-                        repo: repo,
-                        isDark: isDark,
-                        generating: true,
-                      ),
-                    RepoDetailError(:final message) => _ErrorView(
-                        message: message,
-                        isDark: isDark,
-                        onRetry: () =>
-                            context.read<RepoDetailCubit>().load(repoId),
-                      ),
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
+    return BlocListener<RepoDetailCubit, RepoDetailState>(
+      listenWhen: (previous, current) =>
+          previous is RepoDetailGenerating && current is RepoDetailLoaded,
+      listener: (context, state) {
+        if (state is RepoDetailLoaded && state.repo.summary != null) {
+          context.read<RepoListCubit>().markSummarized(repoId, state.repo.summary!);
+        }
       },
+      child: BlocBuilder<ThemeCubit, ThemeMode>(
+        builder: (context, themeMode) {
+          final isDark = themeMode == ThemeMode.dark;
+          return Scaffold(
+            backgroundColor: AppColors.bg(isDark),
+            body: Column(
+              children: [
+                TopBar(
+                  onHome: onBack ?? () => Navigator.of(context).pop(),
+                  onProfile: onProfile,
+                  onSettings: onSettings,
+                ),
+                Expanded(
+                  child: BlocBuilder<RepoDetailCubit, RepoDetailState>(
+                    builder: (context, state) => switch (state) {
+                      RepoDetailInitial() || RepoDetailLoading() =>
+                        _LoadingView(isDark: isDark),
+                      RepoDetailLoaded(:final repo) => _DetailContent(
+                          repo: repo,
+                          isDark: isDark,
+                          generating: false,
+                        ),
+                      RepoDetailGenerating(:final repo) => _DetailContent(
+                          repo: repo,
+                          isDark: isDark,
+                          generating: true,
+                        ),
+                      RepoDetailError(:final message) => _ErrorView(
+                          message: message,
+                          isDark: isDark,
+                          onRetry: () =>
+                              context.read<RepoDetailCubit>().load(repoId),
+                        ),
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -107,7 +141,13 @@ class _DetailContent extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
             child: repo.summarized && repo.summary != null
-                ? _SummaryContent(summary: repo.summary!, isDark: isDark)
+                ? _SummaryContent(
+                    summary: repo.summary!,
+                    isDark: isDark,
+                    generating: generating,
+                    onRegenerate: () =>
+                        context.read<RepoDetailCubit>().regenerateSummary(),
+                  )
                 : _NotSummarizedCard(
                     isDark: isDark,
                     generating: generating,
@@ -236,10 +276,19 @@ class _RepoHeader extends StatelessWidget {
 class _SummaryContent extends StatelessWidget {
   final RepoSummaryEntity summary;
   final bool isDark;
-  const _SummaryContent({required this.summary, required this.isDark});
+  final bool generating;
+  final VoidCallback onRegenerate;
+
+  const _SummaryContent({
+    required this.summary,
+    required this.isDark,
+    required this.generating,
+    required this.onRegenerate,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final accent = AppColors.accent(isDark);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -293,7 +342,40 @@ class _SummaryContent extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 20),
-        ConfidenceBadge(confidence: summary.confidence),
+        Row(
+          children: [
+            ConfidenceBadge(confidence: summary.confidence),
+            const Spacer(),
+            GestureDetector(
+              onTap: generating ? null : onRegenerate,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.surface(isDark),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.border(isDark)),
+                ),
+                child: generating
+                    ? SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 1.5, color: accent),
+                      )
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.refresh_rounded, size: 14, color: accent),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Re-summarize',
+                            style: TextStyle(fontSize: 13, color: accent),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }

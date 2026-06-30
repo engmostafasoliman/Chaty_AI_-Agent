@@ -7,17 +7,22 @@ import '../../domain/entities/repo_summary_entity.dart';
 import '../models/repo_model.dart';
 import '../services/gemini_repo_summary_service.dart';
 import 'repo_data_source.dart';
+import 'repo_summary_db.dart';
 
 class GitHubRepoDataSource implements RepoDataSource {
   final FlutterSecureStorage _storage;
   final GeminiRepoSummaryService _gemini;
+  final RepoSummaryDb _db;
   List<RepoModel>? _cache;
+  final Map<String, RepoSummaryEntity> _summaryCache = {};
 
   GitHubRepoDataSource({
     FlutterSecureStorage? storage,
     required GeminiRepoSummaryService gemini,
+    required RepoSummaryDb db,
   })  : _storage = storage ?? const FlutterSecureStorage(),
-        _gemini = gemini;
+        _gemini = gemini,
+        _db = db;
 
   Future<String> get _token async {
     final token = await _storage.read(key: 'github_access_token');
@@ -48,8 +53,29 @@ class GitHubRepoDataSource implements RepoDataSource {
         .map((json) => RepoModel.fromGitHub(json as Map<String, dynamic>))
         .toList();
 
-    _cache = repos;
-    return repos;
+    // Load all persisted summaries in one query and merge into repo list
+    final persisted = await _db.getAll();
+    final merged = repos.map((r) {
+      final saved = persisted[r.id];
+      if (saved == null) return r;
+      _summaryCache[r.id] = saved;
+      return RepoModel(
+        id: r.id,
+        name: r.name,
+        owner: r.owner,
+        description: r.description,
+        language: r.language,
+        stars: r.stars,
+        updatedAgo: r.updatedAgo,
+        license: r.license,
+        lastCommit: r.lastCommit,
+        summarized: true,
+        summary: saved,
+      );
+    }).toList();
+
+    _cache = merged;
+    return merged;
   }
 
   @override
@@ -74,18 +100,35 @@ class GitHubRepoDataSource implements RepoDataSource {
   }
 
   @override
-  Future<RepoSummaryEntity> generateSummary(String repoId) async {
+  Future<RepoSummaryEntity> generateSummary(String repoId, {bool force = false}) async {
+    if (!force) {
+      // 1. In-memory cache
+      if (_summaryCache.containsKey(repoId)) return _summaryCache[repoId]!;
+
+      // 2. Persistent DB cache
+      final saved = await _db.get(repoId);
+      if (saved != null) {
+        _summaryCache[repoId] = saved;
+        _applyToCache(repoId, saved);
+        return saved;
+      }
+    } else {
+      _summaryCache.remove(repoId);
+    }
+
+    // 3. Call Gemini
     final repo = await getRepoById(repoId);
     final token = await _token;
 
-    // Fetch languages and README in parallel
     final results = await Future.wait([
       http.get(
-        Uri.parse('https://api.github.com/repos/${repo.owner}/${repo.name}/languages'),
+        Uri.parse(
+            'https://api.github.com/repos/${repo.owner}/${repo.name}/languages'),
         headers: _headers(token),
       ),
       http.get(
-        Uri.parse('https://api.github.com/repos/${repo.owner}/${repo.name}/readme'),
+        Uri.parse(
+            'https://api.github.com/repos/${repo.owner}/${repo.name}/readme'),
         headers: _headers(token),
       ),
     ]);
@@ -106,7 +149,7 @@ class GitHubRepoDataSource implements RepoDataSource {
       readme = utf8.decode(base64.decode(encoded.replaceAll('\n', '')));
     }
 
-    return _gemini.summarize(
+    final summary = await _gemini.summarize(
       name: repo.name,
       owner: repo.owner,
       description: repo.description,
@@ -115,5 +158,32 @@ class GitHubRepoDataSource implements RepoDataSource {
       stars: repo.stars,
       readme: readme,
     );
+
+    // Persist and cache
+    await _db.save(repoId, summary);
+    _summaryCache[repoId] = summary;
+    _applyToCache(repoId, summary);
+
+    return summary;
+  }
+
+  void _applyToCache(String repoId, RepoSummaryEntity summary) {
+    if (_cache == null) return;
+    _cache = _cache!.map((r) {
+      if (r.id != repoId) return r;
+      return RepoModel(
+        id: r.id,
+        name: r.name,
+        owner: r.owner,
+        description: r.description,
+        language: r.language,
+        stars: r.stars,
+        updatedAgo: r.updatedAgo,
+        license: r.license,
+        lastCommit: r.lastCommit,
+        summarized: true,
+        summary: summary,
+      );
+    }).toList();
   }
 }
