@@ -81,11 +81,11 @@ class _ChatViewState extends State<_ChatView> {
             final errorMsg = state is ChatError ? state.error : null;
             final rateLimit = state is ChatRateLimit ? state : null;
             final title = widget.repo != null
-                ? 'Ask about ${widget.repo!.name}'
-                : 'Chaty Agent';
+                ? 'GitMind'
+                : 'GitMind';
             final emptyLabel = widget.repo != null
-                ? 'Ask anything about\n${widget.repo!.name}'
-                : 'Start a conversation';
+                ? 'Ask GitMind anything about\n${widget.repo!.name}'
+                : 'Start a conversation with GitMind';
 
             return Scaffold(
               backgroundColor: AppColors.bg(isDark),
@@ -109,9 +109,10 @@ class _ChatViewState extends State<_ChatView> {
                         color: AppColors.text(isDark),
                       ),
                     ),
-                    if (widget.repo != null)
                       Text(
-                        'Powered by Gemini',
+                        widget.repo != null
+                            ? '${widget.repo!.name} · Powered by Gemini'
+                            : 'Powered by Gemini',
                         style: TextStyle(
                           fontSize: 11,
                           color: AppColors.secondary(isDark),

@@ -31,7 +31,8 @@ class SendMessageCubit extends Cubit<SendMessageState> {
     if (s == null) return;
 
     final prompt =
-        'You are a helpful code reviewer and software architect. '
+        'You are GitMind, an AI assistant specialized in analyzing GitHub repositories. '
+        'You are an expert code reviewer and software architect. '
         'The user wants to discuss the "${repo.name}" repository by ${repo.owner}.\n\n'
         'Repository context:\n'
         '- What it does: ${s.whatItDoes}\n'
@@ -40,13 +41,14 @@ class SendMessageCubit extends Cubit<SendMessageState> {
         '- Weaknesses: ${s.weaknesses.join('; ')}\n'
         '- Primary language: ${repo.language}\n'
         '- Stars: ${repo.stars}\n\n'
+        'Always introduce yourself as GitMind if asked. '
         'Answer concisely and always relate your answers to this specific repository.';
 
     emit(ChatIdle([
       ChatMessage(role: 'user', text: prompt, isHidden: true),
       ChatMessage(
         role: 'model',
-        text: 'Got it! I\'m ready to answer questions about ${repo.name}.',
+        text: 'Hi! I\'m GitMind 👋 I\'ve analyzed **${repo.name}** and I\'m ready to answer your questions.',
         isHidden: true,
       ),
     ]));
