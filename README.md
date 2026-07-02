@@ -159,6 +159,8 @@ Required GitHub Secrets:
 
 ## Testing
 
+### Automated
+
 ```bash
 flutter test
 ```
@@ -169,6 +171,17 @@ Covers domain entities, use cases, repository implementations, and cubits across
 - `SettingsCubit` — persistence, defaults
 - `SettingsEntity` — copyWith, defaults
 - `ClearSummariesUseCase`
+
+### Manual / Device
+
+| Scenario | Device |
+|---|---|
+| Sign-in, repo list, AI summary, GitMind chat | iPhone 17 Pro Max simulator |
+| Sign-in, repo list, AI summary, GitMind chat | Realme RMX3771 (Android, real device) |
+| Firebase App Distribution install + launch | Realme RMX3771 (via Firebase Tester app) |
+| Session persistence after app termination | Both platforms |
+| Re-summarize button visibility above FAB | Both platforms |
+| Debounce on search, throttle on Gemini calls | Both platforms |
 
 ## AI Models
 
