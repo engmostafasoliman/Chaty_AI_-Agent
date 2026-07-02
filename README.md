@@ -165,12 +165,20 @@ Required GitHub Secrets:
 flutter test
 ```
 
-Covers domain entities, use cases, repository implementations, and cubits across:
-- `SendMessageCubit` — all states, cooldown, rate-limit countdown
-- `RepoDetailCubit` — summary flow, 429 handling
-- `SettingsCubit` — persistence, defaults
-- `SettingsEntity` — copyWith, defaults
-- `ClearSummariesUseCase`
+**80 tests — all passing.** Coverage across:
+
+| File | What's tested |
+|---|---|
+| `SendMessageCubit` | All states, cooldown, rate-limit countdown, GitMind persona init, empty/whitespace guard |
+| `GeminiChatRepositoryImpl` | Success, all error types, history trimming (cap at 10 visible, preserve hidden context) |
+| `RepoListCubit` | Load success/failure, 300ms debounce on search, rapid-call cancellation, filter, sort, clearFilters |
+| `AuthRepositoryImpl` | `getPersistedUser()` session persistence — returns user when Firebase session exists, null when not, clears on sign-out |
+| `AnalyticsService` | `regenerated` param is always `int` (0/1), never `bool`; `logRepoViewed`, `logModelChanged` params |
+| `SettingsCubit` | Load, all setters, accent propagation to ThemeCubit, clearSummaries delegation |
+| `SettingsEntity` | `copyWith`, defaults, field preservation |
+| `ClearSummariesUseCase` | Delegates to repository |
+| `SendMessageUseCase` | Delegates to repository |
+| `ChatMessageModel` | JSON serialization |
 
 ### Manual / Device
 
