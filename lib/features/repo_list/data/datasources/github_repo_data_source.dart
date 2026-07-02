@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
+import '../../../../core/error/app_exception.dart';
 import '../../../../features/settings/domain/repositories/settings_repository.dart';
 import '../../domain/entities/repo_summary_entity.dart';
 import '../models/repo_model.dart';
@@ -17,6 +18,8 @@ class GitHubRepoDataSource implements RepoDataSource {
   final SettingsRepository _settingsRepo;
   List<RepoModel>? _cache;
   final Map<String, RepoSummaryEntity> _summaryCache = {};
+  final Map<String, DateTime> _lastGeminiCall = {};
+  static const _throttleDuration = Duration(seconds: 10);
 
   GitHubRepoDataSource({
     FlutterSecureStorage? storage,
@@ -124,7 +127,14 @@ class GitHubRepoDataSource implements RepoDataSource {
       _summaryCache.remove(repoId);
     }
 
-    // 3. Call Gemini
+    // 3. Throttle — block rapid Gemini calls for the same repo
+    final lastCall = _lastGeminiCall[repoId];
+    if (lastCall != null && DateTime.now().difference(lastCall) < _throttleDuration) {
+      throw const RateLimitException();
+    }
+    _lastGeminiCall[repoId] = DateTime.now();
+
+    // 4. Call Gemini
     final repo = await getRepoById(repoId);
     final token = await _token;
 

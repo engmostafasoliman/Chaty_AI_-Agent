@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/result/api_result.dart';
 import '../../domain/entities/repo_entity.dart';
@@ -7,6 +9,7 @@ import 'repo_list_state.dart';
 
 class RepoListCubit extends Cubit<RepoListState> {
   final GetReposUseCase _getRepos;
+  Timer? _searchDebounce;
 
   RepoListCubit(this._getRepos) : super(const RepoListInitial());
 
@@ -29,10 +32,12 @@ class RepoListCubit extends Cubit<RepoListState> {
   }
 
   void search(String query) {
-    final current = state;
-    if (current is! RepoListLoaded) return;
-    final next = current.copyWith(searchQuery: query);
-    emit(_applyFilters(next));
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+      final current = state;
+      if (current is! RepoListLoaded) return;
+      emit(_applyFilters(current.copyWith(searchQuery: query)));
+    });
   }
 
   void filterByLanguage(String language) {
@@ -83,6 +88,12 @@ class RepoListCubit extends Cubit<RepoListState> {
             ))
         .toList();
     emit(_applyFilters(current.copyWith(allRepos: updated)));
+  }
+
+  @override
+  Future<void> close() {
+    _searchDebounce?.cancel();
+    return super.close();
   }
 
   RepoListLoaded _applyFilters(RepoListLoaded state) {
